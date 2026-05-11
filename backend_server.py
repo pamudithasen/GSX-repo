@@ -11,6 +11,11 @@ if not os.path.exists(UPLOAD_FOLDER):
 def download_file(filename):
     return send_from_directory(UPLOAD_FOLDER, filename)
 
+@app.route('/list', methods=['GET'])
+def list_files():
+    files = os.listdir(UPLOAD_FOLDER)
+    return {"files": files}, 200
+
 @app.route('/upload', methods=['POST'])
 def upload_file():
     # This matches the binary stream sent by client_api.py
