@@ -10,7 +10,21 @@ BACKEND_URL = "https://web-production-c5fe0.up.railway.app"
 def capture_image(filename):
     print("📸 Initializing Camera...")
     
-    # 1. Try libcamera-still (Modern OS)
+    # 1. Try picamera2 (Newest Pi Camera library - what your previous script used)
+    try:
+        from picamera2 import Picamera2
+        picam2 = Picamera2()
+        config = picam2.create_still_configuration()
+        picam2.configure(config)
+        picam2.start()
+        picam2.capture_file(filename)
+        picam2.stop()
+        print(f"✅ Photo captured using picamera2")
+        return True
+    except (ImportError, Exception) as e:
+        print(f"⚠️ picamera2 failed or not found, trying other methods...")
+
+    # 2. Try libcamera-still (Modern OS command line)
     try:
         subprocess.run(["libcamera-still", "-o", filename, "--immediate", "-n"], check=True)
         print(f"✅ Photo captured using libcamera-still")
@@ -18,7 +32,7 @@ def capture_image(filename):
     except (FileNotFoundError, subprocess.CalledProcessError):
         pass
 
-    # 2. Try raspistill (Older OS)
+    # 3. Try raspistill (Older OS command line)
     try:
         subprocess.run(["raspistill", "-o", filename, "-t", "100"], check=True)
         print(f"✅ Photo captured using raspistill")
@@ -26,19 +40,8 @@ def capture_image(filename):
     except (FileNotFoundError, subprocess.CalledProcessError):
         pass
 
-    # 3. Try picamera (Python Library - common on Pi Zero)
-    try:
-        import picamera
-        with picamera.PiCamera() as camera:
-            camera.resolution = (1024, 768)
-            camera.start_preview()
-            time.sleep(2) # Camera warm-up time
-            camera.capture(filename)
-        print(f"✅ Photo captured using picamera library")
-        return True
-    except Exception as e:
-        print(f"❌ All methods failed. Final error: {e}")
-        return False
+    print("❌ All capture methods failed.")
+    return False
 
 def main():
     # 1. Capture the photo
