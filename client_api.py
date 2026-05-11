@@ -45,15 +45,14 @@ class GSXTransferClient:
             return False
 
 if __name__ == "__main__":
-    # Replace with your actual backend URL once hosted
-    # For testing, you can use 'https://postman-echo.com/post' for the SEND test
     MY_BACKEND = "https://web-production-c5fe0.up.railway.app"
-    
     client = GSXTransferClient(MY_BACKEND)
     
-    # Example usage:
-    # client.receive_file("get-config", "local_config.json")
-    # client.send_file("upload-logs", "test_file.txt")
+    print(f"GSX Transfer Client Initialized for: {MY_BACKEND}")
     
-    print("GSX Transfer Client Initialized.")
-    print(f"Configured Backend: {MY_BACKEND}")
+    # Automatic Test: Try to upload test_file.txt
+    if os.path.exists("test_file.txt"):
+        print("Starting test upload of 'test_file.txt'...")
+        client.send_file("upload", "test_file.txt")
+    else:
+        print("Note: 'test_file.txt' not found, skipping automatic test upload.")
