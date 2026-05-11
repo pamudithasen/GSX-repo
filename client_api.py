@@ -47,7 +47,7 @@ class GSXTransferClient:
 if __name__ == "__main__":
     # Replace with your actual backend URL once hosted
     # For testing, you can use 'https://postman-echo.com/post' for the SEND test
-    MY_BACKEND = "http://your-backend-ip-or-domain.com"
+    MY_BACKEND = "https://web-production-c5fe0.up.railway.app"
     
     client = GSXTransferClient(MY_BACKEND)
     
