@@ -10,10 +10,14 @@ BACKEND_URL = "https://web-production-c5fe0.up.railway.app"
 def capture_image(filename):
     print("📸 Initializing Camera...")
     
-    # 1. Try picamera2 (Newest Pi Camera library - what your previous script used)
+    # 1. Try picamera2 (Modern Pi Camera library)
     try:
-        from picamera2 import Picamera2
-        picam2 = Picamera2()
+        try:
+            from picamera2 import Picamera2 as PC2
+        except ImportError:
+            from picamera2 import PiCamera2 as PC2
+            
+        picam2 = PC2()
         config = picam2.create_still_configuration()
         picam2.configure(config)
         picam2.start()
@@ -21,8 +25,9 @@ def capture_image(filename):
         picam2.stop()
         print(f"✅ Photo captured using picamera2")
         return True
-    except (ImportError, Exception) as e:
-        print(f"⚠️ picamera2 failed or not found, trying other methods...")
+    except Exception as e:
+        print(f"⚠️ picamera2 attempt failed: {e}")
+        print("Trying other methods...")
 
     # 2. Try libcamera-still (Modern OS command line)
     try:
