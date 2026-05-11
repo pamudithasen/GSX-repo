@@ -1,71 +1,60 @@
-from flask import Flask, request, jsonify
+import time
+import requests
 import subprocess
 import os
-import sys
 
-app = Flask(__name__)
+# Configuration
+RAILWAY_URL = "https://web-production-c5fe0.up.railway.app"
+CHECK_INTERVAL = 1.0  # Seconds between checks
 
-# Manual CORS support for Flutter Web
-@app.after_request
-def add_cors_headers(response):
-    response.headers.add('Access-Control-Allow-Origin', '*')
-    response.headers.add('Access-Control-Allow-Headers', 'Content-Type,Authorization')
-    response.headers.add('Access-Control-Allow-Methods', 'GET,PUT,POST,DELETE,OPTIONS')
-    return response
-
-@app.route('/scan', methods=['GET', 'POST', 'OPTIONS'])
-def trigger_scan():
-    if request.method == 'OPTIONS':
-        return '', 204
-        
+def perform_capture():
     print("\n" + "="*40)
-    print("🔔 NEW SCAN REQUEST RECEIVED")
+    print("📸 SCAN COMMAND RECEIVED FROM CLOUD!")
     print("="*40)
     
     try:
-        print("📸 Step 1: Initializing camera script...")
-        # We'll use capture_output=False so it prints directly to the terminal for visibility
-        # but we'll use a try-except to catch execution errors
-        
-        print(f"🚀 Step 2: Running 'python3 camera_capture.py'...")
-        # Using check=True to raise error on failure
+        print("🚀 Running 'python3 camera_capture.py'...")
+        # Run your existing capture and upload script
         process = subprocess.run(
             ['python3', 'camera_capture.py'], 
             capture_output=True, 
             text=True
         )
         
-        # Print the script's output to the Pi terminal so the user sees it
-        print("--- SCRIPT OUTPUT START ---")
+        print("--- SCRIPT OUTPUT ---")
         print(process.stdout)
-        if process.stderr:
-            print("--- SCRIPT ERRORS ---")
-            print(process.stderr)
-        print("--- SCRIPT OUTPUT END ---")
-
+        
         if process.returncode == 0:
-            print("✅ Step 3: Scan and Upload Successful!")
-            return jsonify({
-                "status": "success", 
-                "message": "Scan completed and uploaded to Railway"
-            }), 200
+            print("✅ Capture and Upload to Railway Successful!")
         else:
-            print(f"❌ Step 3: Hardware scan failed with exit code {process.returncode}")
-            return jsonify({
-                "status": "error", 
-                "message": "Hardware scan failed",
-                "details": process.stderr
-            }), 500
+            print(f"❌ Script failed: {process.stderr}")
             
     except Exception as e:
-        print(f"💥 FATAL ERROR: {str(e)}")
-        return jsonify({"status": "error", "message": str(e)}), 500
+        print(f"💥 Error: {str(e)}")
 
-if __name__ == '__main__':
+def main():
     print("\n" + "*"*50)
-    print("🚀 PI HARDWARE TRIGGER IS LIVE")
-    print("📡 Listening on: http://0.0.0.0:5000")
-    print("💡 Waiting for requests from AgroSpectra app...")
+    print("📡 PI CLOUD LISTENER IS LIVE")
+    print(f"🔗 Monitoring: {RAILWAY_URL}/check-scan")
+    print("💡 Waiting for remote scan commands...")
     print("*"*50 + "\n")
-    
-    app.run(host='0.0.0.0', port=5000, debug=False)
+
+    while True:
+        try:
+            # Check if there's a pending scan request
+            response = requests.get(f"{RAILWAY_URL}/check-scan", timeout=5)
+            
+            if response.status_code == 200:
+                data = response.json()
+                if data.get("scan_requested") == True:
+                    perform_capture()
+            
+        except Exception as e:
+            print(f"⚠️ Connection error: {e}")
+            time.sleep(5)  # Wait longer if server is down
+            continue
+            
+        time.sleep(CHECK_INTERVAL)
+
+if __name__ == "__main__":
+    main()

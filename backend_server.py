@@ -4,6 +4,9 @@ import os
 app = Flask(__name__)
 UPLOAD_FOLDER = 'uploaded_files'
 
+# Simple in-memory command queue
+scan_pending = False
+
 if not os.path.exists(UPLOAD_FOLDER):
     os.makedirs(UPLOAD_FOLDER)
 
@@ -26,6 +29,24 @@ def upload_file():
         f.write(request.data)
     
     return {"status": "success", "message": f"File saved as {filename}"}, 200
+
+# Endpoint for Flutter to request a scan
+@app.route('/trigger-scan', methods=['POST'])
+def trigger_scan():
+    global scan_pending
+    scan_pending = True
+    print("📡 Cloud: Scan request queued!")
+    return {"status": "queued", "message": "Scan command sent to Pi"}, 200
+
+# Endpoint for Pi to check if a scan is requested
+@app.route('/check-scan', methods=['GET'])
+def check_scan():
+    global scan_pending
+    if scan_pending:
+        # Reset flag immediately so we don't scan twice
+        scan_pending = False
+        return {"scan_requested": True}, 200
+    return {"scan_requested": False}, 200
 
 if __name__ == '__main__':
     port = int(os.environ.get("PORT", 5000))
